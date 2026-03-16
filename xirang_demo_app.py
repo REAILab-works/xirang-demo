@@ -208,6 +208,46 @@ def render_platform_overview(df: pd.DataFrame, is_crm: bool) -> None:
     st.markdown(overview_html, unsafe_allow_html=True)
 
 
+def render_monitoring_header(latest_all: pd.DataFrame) -> None:
+    total = int(latest_all["well"].nunique())
+    offshore = int((latest_all["site_type"] == "Offshore").sum()) if "site_type" in latest_all.columns else 0
+    c1 = int((latest_all["cluster"] == "C1").sum())
+    c2 = int((latest_all["cluster"] == "C2").sum())
+    c3 = int((latest_all["cluster"] == "C3").sum())
+    c4 = int((latest_all["cluster"] == "C4").sum())
+    narrative = (
+        "Current view shows a North Sea-led screening pattern with "
+        f"{offshore}/{total} offshore wells. Cluster balance is "
+        f"C1 {c1}, C2 {c2}, C3 {c3}, C4 {c4}."
+    )
+    st.markdown(f'<div class="xirang-narrative">{narrative}</div>', unsafe_allow_html=True)
+
+
+def render_monitoring_legend() -> None:
+    legend_html = """
+    <div class="xirang-legend">
+      <div class="xirang-legend-group">
+        <span class="xirang-legend-title">Clusters</span>
+        <span class="xirang-chip"><span class="xirang-swatch" style="background:#1d3557;"></span>C1</span>
+        <span class="xirang-chip"><span class="xirang-swatch" style="background:#2a9d8f;"></span>C2</span>
+        <span class="xirang-chip"><span class="xirang-swatch" style="background:#e9c46a;"></span>C3</span>
+        <span class="xirang-chip"><span class="xirang-swatch" style="background:#e76f51;"></span>C4</span>
+      </div>
+      <div class="xirang-legend-group">
+        <span class="xirang-legend-title">Site Type</span>
+        <span class="xirang-chip">● Onshore</span>
+        <span class="xirang-chip">▲ Offshore</span>
+      </div>
+      <div class="xirang-legend-group">
+        <span class="xirang-legend-title">Alert</span>
+        <span class="xirang-chip"><span class="xirang-dot" style="background:#22c55e;"></span>OK</span>
+        <span class="xirang-chip"><span class="xirang-dot" style="background:#dc3545;"></span>High</span>
+      </div>
+    </div>
+    """
+    st.markdown(legend_html, unsafe_allow_html=True)
+
+
 def metrics_dictionary_df() -> pd.DataFrame:
     rows = [
         {
@@ -805,7 +845,9 @@ def render_monitoring_tab(
     c4.metric("High Alerts", int((latest_all["alert"] == "HIGH").sum()))
     c5.metric("Offshore Wells", int((latest_all["site_type"] == "Offshore").sum()))
 
+    render_monitoring_header(latest_all)
     st.subheader("UK Well Map (Latest Snapshot)")
+    render_monitoring_legend()
     map_df = latest_all.copy()
     map_df["color_hex"] = map_df["cluster"].map(CLUSTER_COLORS_HEX).fillna("#6b7280")
     map_df["color"] = map_df["color_hex"].apply(lambda h: hex_to_rgba(h, 220))
@@ -917,10 +959,6 @@ def render_monitoring_tab(
         on_select="rerun",
     )
     st.dataframe(latest_all.reset_index(drop=True), use_container_width=True)
-    cluster_legend = pd.DataFrame(
-        [{"Cluster": k, "Zone Logic": CLUSTER_NOTES.get(k, "")} for k in CLUSTER_COLORS_HEX.keys()]
-    )
-    st.dataframe(cluster_legend, use_container_width=True, hide_index=True)
 
     st.subheader("Single-Well Detail")
     selected_from_map = None
@@ -1480,6 +1518,59 @@ def main() -> None:
         font-size: 0.94rem;
         line-height: 1.35;
         color: var(--x-muted);
+    }
+    .xirang-narrative {
+        margin: 0.15rem 0 0.9rem 0;
+        padding: 0.82rem 1rem;
+        border-left: 3px solid var(--x-teal);
+        background: rgba(255,255,255,0.52);
+        border-radius: 0 14px 14px 0;
+        color: #556872;
+        font-size: 1rem;
+        line-height: 1.45;
+    }
+    .xirang-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.8rem 1rem;
+        align-items: center;
+        margin: 0.55rem 0 1rem 0;
+        padding: 0.8rem 0.95rem;
+        background: rgba(255,255,255,0.58);
+        border: 1px solid var(--x-line);
+        border-radius: 16px;
+    }
+    .xirang-legend-group {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+        align-items: center;
+    }
+    .xirang-legend-title {
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.82rem;
+        font-weight: 800;
+        color: var(--x-sea);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-right: 0.15rem;
+    }
+    .xirang-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.34rem;
+        padding: 0.24rem 0.55rem;
+        border-radius: 999px;
+        background: rgba(246,245,240,0.96);
+        border: 1px solid rgba(32,49,59,0.08);
+        color: #4d6069;
+        font-size: 0.92rem;
+    }
+    .xirang-swatch, .xirang-dot {
+        display: inline-block;
+        width: 0.7rem;
+        height: 0.7rem;
+        border-radius: 999px;
     }
     .stTabs [data-baseweb="tab-list"] {
         gap: 0.4rem;
