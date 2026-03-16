@@ -104,7 +104,7 @@ GCAM_REGION_COLOR_PATH = PROJECT_ROOT / "data" / "gcam" / "region_colors.csv"
 GCAM_ISO3_PATH = PROJECT_ROOT / "data" / "gcam" / "region_iso3.csv"
 GEOTHERMAL_POTENTIAL_PATH = PROJECT_ROOT / "data" / "geothermal" / "global_geothermal_potential.csv"
 DATA_SCHEMA_VERSION = "2026-02-22-offshore-v1"
-BUILD_TAG = "map-template-v1"
+BUILD_TAG = "ui-atlas-v1"
 
 I18N = {
     "en": {
@@ -173,6 +173,39 @@ def format_xirang_subtitle_html() -> str:
         '<span class="xirang-accent">N</span>etwork for '
         '<span class="xirang-accent">G</span>eothermal systems'
     )
+
+
+def render_platform_overview(df: pd.DataFrame, is_crm: bool) -> None:
+    latest = df.sort_values("date").groupby("well").tail(1).copy()
+    total_wells = int(latest["well"].nunique())
+    offshore_wells = int((latest["site_type"] == "Offshore").sum()) if "site_type" in latest.columns else 0
+    clusters = ", ".join(sorted(latest["cluster"].dropna().unique().tolist()))
+    source_label = "CRM production proxy" if is_crm else "Synthetic UK field atlas"
+    overview_html = """
+    <div class="xirang-overview">
+      <div class="xirang-overview-card">
+        <div class="xirang-kicker">Platform Scope</div>
+        <div class="xirang-overview-value">UK + Global</div>
+        <div class="xirang-overview-note">Well monitoring, GCAM scenarios, geothermal potential</div>
+      </div>
+      <div class="xirang-overview-card">
+        <div class="xirang-kicker">Current UK Layer</div>
+        <div class="xirang-overview-value">%s</div>
+        <div class="xirang-overview-note">%d wells, %d offshore</div>
+      </div>
+      <div class="xirang-overview-card">
+        <div class="xirang-kicker">Spatial Logic</div>
+        <div class="xirang-overview-value">%s</div>
+        <div class="xirang-overview-note">North Sea-led C1-C4 zoning for quick screening</div>
+      </div>
+      <div class="xirang-overview-card">
+        <div class="xirang-kicker">Research Frame</div>
+        <div class="xirang-overview-value">Atlas Mode</div>
+        <div class="xirang-overview-note">Narrative dashboard for papers, talks, and demos</div>
+      </div>
+    </div>
+    """ % (source_label, total_wells, offshore_wells, clusters)
+    st.markdown(overview_html, unsafe_allow_html=True)
 
 
 def metrics_dictionary_df() -> pd.DataFrame:
@@ -1309,51 +1342,219 @@ def main() -> None:
 
     banner_html = """
     <style>
-    .xirang-title {
-        font-size: 3.6rem;
-        font-weight: 800;
-        line-height: 1.08;
-        margin: 0.15rem 0 0.35rem 0;
-        color: #1f2937;
-        letter-spacing: 0.5px;
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+    :root {
+        --x-bg: #f4f2eb;
+        --x-panel: rgba(255, 252, 246, 0.82);
+        --x-panel-strong: rgba(255, 255, 255, 0.9);
+        --x-ink: #182a35;
+        --x-muted: #5f6f78;
+        --x-line: rgba(24, 42, 53, 0.12);
+        --x-sea: #12344a;
+        --x-teal: #1e6f68;
+        --x-sand: #c79a4c;
+        --x-soft: #e8efe9;
     }
-    .xirang-subtitle {
-        font-size: 1.42rem;
-        font-weight: 600;
-        color: #334155;
-        margin-top: 0.15rem;
-        margin-bottom: 1.1rem;
-        line-height: 1.45;
-        max-width: 980px;
+    .stApp {
+        background:
+            radial-gradient(circle at top left, rgba(30, 111, 104, 0.08), transparent 24%),
+            radial-gradient(circle at top right, rgba(199, 154, 76, 0.10), transparent 28%),
+            linear-gradient(180deg, #f8f6f0 0%%, #f1eee6 100%%);
+        color: var(--x-ink);
+        font-family: 'Source Sans 3', sans-serif;
+    }
+    .stApp h1, .stApp h2, .stApp h3, .stApp [data-testid="stMetricLabel"] {
+        font-family: 'Manrope', sans-serif;
+    }
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, rgba(233, 239, 235, 0.92) 0%%, rgba(241, 238, 230, 0.97) 100%%);
+        border-right: 1px solid rgba(24, 42, 53, 0.08);
     }
     .xirang-hero {
         position: relative;
-        padding-top: 0.2rem;
+        overflow: hidden;
+        padding: 1.6rem 1.8rem 1.3rem 1.8rem;
+        margin: 0.25rem 0 1rem 0;
+        border: 1px solid var(--x-line);
+        border-radius: 26px;
+        background:
+            linear-gradient(135deg, rgba(18, 52, 74, 0.96) 0%%, rgba(22, 68, 87, 0.92) 52%%, rgba(28, 111, 104, 0.88) 100%%);
+        box-shadow: 0 22px 60px rgba(17, 34, 48, 0.14);
+        animation: xirang-fade-up 0.55s ease-out;
+    }
+    .xirang-hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+            linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px),
+            linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+        background-size: 34px 34px;
+        mask-image: linear-gradient(180deg, rgba(0,0,0,0.8), transparent);
+        pointer-events: none;
+    }
+    .xirang-hero::after {
+        content: "";
+        position: absolute;
+        width: 320px;
+        height: 320px;
+        right: -80px;
+        top: -110px;
+        background: radial-gradient(circle, rgba(231, 205, 152, 0.28), transparent 68%%);
+        pointer-events: none;
+    }
+    .xirang-title {
+        position: relative;
+        z-index: 1;
+        font-size: 4.1rem;
+        font-weight: 800;
+        line-height: 1.02;
+        margin: 0.35rem 0 0.5rem 0;
+        color: #f8faf8;
+        letter-spacing: -1.5px;
+    }
+    .xirang-subtitle {
+        position: relative;
+        z-index: 1;
+        font-size: 1.34rem;
+        font-weight: 600;
+        color: rgba(245, 250, 247, 0.92);
+        margin-top: 0.15rem;
+        margin-bottom: 0;
+        line-height: 1.5;
+        max-width: 980px;
     }
     .xirang-lab {
-        position: absolute;
-        top: 0.1rem;
-        right: 0.2rem;
-        font-size: 0.92rem;
+        position: relative;
+        z-index: 1;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        font-size: 0.84rem;
         font-weight: 700;
-        color: #64748b;
-        letter-spacing: 0.4px;
-        border: 1px solid #cbd5e1;
-        padding: 0.18rem 0.5rem;
+        color: rgba(248, 250, 248, 0.88);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        padding: 0.36rem 0.7rem;
         border-radius: 999px;
-        background: #f8fafc;
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(8px);
     }
     .xirang-accent {
-        color: #0f766e;
+        color: #f4c76a;
         font-weight: 800;
         letter-spacing: 0.2px;
     }
-    .stTabs [data-baseweb="tab"] {
+    .xirang-overview {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.85rem;
+        margin: 0.2rem 0 1.35rem 0;
+        animation: xirang-fade-up 0.7s ease-out;
+    }
+    .xirang-overview-card {
+        padding: 1rem 1rem 0.95rem 1rem;
+        border-radius: 20px;
+        border: 1px solid var(--x-line);
+        background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(250,247,239,0.9));
+        box-shadow: 0 10px 30px rgba(24, 42, 53, 0.06);
+    }
+    .xirang-kicker {
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--x-teal);
+        margin-bottom: 0.35rem;
+    }
+    .xirang-overview-value {
+        font-family: 'Manrope', sans-serif;
         font-size: 1.28rem;
+        font-weight: 800;
+        color: var(--x-sea);
+        margin-bottom: 0.2rem;
+    }
+    .xirang-overview-note {
+        font-size: 0.98rem;
+        line-height: 1.35;
+        color: var(--x-muted);
+    }
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 0.45rem;
+        padding-bottom: 0.4rem;
+    }
+    .stTabs [data-baseweb="tab"] {
+        font-size: 1.08rem;
+        font-weight: 800;
+        min-height: 50px;
+        border-radius: 999px;
+        padding: 0.15rem 1rem;
+        background: rgba(255,255,255,0.54);
+        border: 1px solid rgba(24, 42, 53, 0.08);
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, rgba(18,52,74,0.95), rgba(30,111,104,0.88));
+        color: #f7faf8 !important;
+        box-shadow: 0 10px 24px rgba(18, 52, 74, 0.18);
+    }
+    [data-testid="stMetric"] {
+        background: linear-gradient(180deg, rgba(255,255,255,0.76), rgba(250,247,239,0.92));
+        border: 1px solid var(--x-line);
+        border-radius: 20px;
+        padding: 0.9rem 1rem;
+        box-shadow: 0 10px 26px rgba(24, 42, 53, 0.06);
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 0.92rem;
         font-weight: 700;
-        min-height: 52px;
-        padding-top: 0.28rem;
-        padding-bottom: 0.28rem;
+        color: var(--x-muted);
+    }
+    [data-testid="stMetricValue"] {
+        color: var(--x-sea);
+        letter-spacing: -0.03em;
+    }
+    .stExpander, [data-testid="stDataFrame"], .stAlert, .stPlotlyChart, [data-testid="stDeckGlJsonChart"], [data-testid="stVegaLiteChart"] {
+        border-radius: 20px;
+        overflow: hidden;
+    }
+    [data-testid="stDataFrame"], .stPlotlyChart, [data-testid="stDeckGlJsonChart"], [data-testid="stVegaLiteChart"] {
+        border: 1px solid var(--x-line);
+        box-shadow: 0 10px 26px rgba(24, 42, 53, 0.05);
+        background: rgba(255,255,255,0.72);
+    }
+    h3 {
+        font-size: 1.9rem !important;
+        color: var(--x-sea);
+        letter-spacing: -0.04em;
+    }
+    .stCaption {
+        color: var(--x-muted) !important;
+        font-size: 0.96rem !important;
+    }
+    @keyframes xirang-fade-up {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @media (max-width: 1100px) {
+        .xirang-overview {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .xirang-title {
+            font-size: 3.2rem;
+        }
+    }
+    @media (max-width: 700px) {
+        .xirang-overview {
+            grid-template-columns: 1fr;
+        }
+        .xirang-title {
+            font-size: 2.55rem;
+        }
+        .xirang-subtitle {
+            font-size: 1.08rem;
+        }
     }
     </style>
     <div class="xirang-hero">
@@ -1385,6 +1586,7 @@ def main() -> None:
     if "site_type" not in df.columns:
         df = df.copy()
         df["site_type"] = "Onshore"
+    render_platform_overview(df, is_crm)
     wells = sorted(df["well"].unique())
     min_date = df["date"].min().date()
     max_date = df["date"].max().date()
@@ -1435,6 +1637,7 @@ def main() -> None:
     tab_monitor, tab_gcam = st.tabs([tr("tab_monitor"), tr("tab_gcam")])
 
     with tab_monitor:
+        st.caption("UK subsurface screening view with offshore-aware zoning, alert traces, and agent guidance.")
         if not selected_wells:
             st.warning(tr("need_one_well"))
         elif not isinstance(date_range, tuple) or len(date_range) != 2:
@@ -1459,6 +1662,7 @@ def main() -> None:
                 )
 
     with tab_gcam:
+        st.caption("Global atlas for scenario screening, ISO3 mapping, and geothermal potential benchmarking.")
         render_gcam_tab()
 
 
