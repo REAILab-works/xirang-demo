@@ -1397,7 +1397,7 @@ def main() -> None:
         background:
             radial-gradient(circle at top left, rgba(58, 123, 116, 0.05), transparent 22%),
             radial-gradient(circle at top right, rgba(183, 144, 84, 0.06), transparent 22%),
-            linear-gradient(180deg, #fbfaf6 0%%, #f3f0e8 100%%);
+            linear-gradient(180deg, #fbfaf6 0%, #f3f0e8 100%);
         color: var(--x-ink);
         font-family: 'Source Sans 3', sans-serif;
     }
@@ -1405,7 +1405,7 @@ def main() -> None:
         font-family: 'Manrope', sans-serif;
     }
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, rgba(244, 247, 242, 0.95) 0%%, rgba(245, 242, 235, 0.98) 100%%);
+        background: linear-gradient(180deg, rgba(244, 247, 242, 0.95) 0%, rgba(245, 242, 235, 0.98) 100%);
         border-right: 1px solid rgba(24, 42, 53, 0.08);
     }
     .xirang-hero {
@@ -1649,11 +1649,16 @@ def main() -> None:
     }
     </style>
     <div class="xirang-hero">
-    <div class="xirang-lab">REAI Lab · Build %s</div>
+    <div class="xirang-lab">REAI Lab · Build __BUILD_TAG__</div>
     <div class="xirang-title">XIRANG (息壤)</div>
-    <div class="xirang-subtitle">%s</div>
+    <div class="xirang-subtitle">__SUBTITLE_HTML__</div>
     </div>
-    """ % (BUILD_TAG, format_xirang_subtitle_html())
+    """
+    banner_html = (
+        banner_html
+        .replace("__BUILD_TAG__", BUILD_TAG)
+        .replace("__SUBTITLE_HTML__", format_xirang_subtitle_html())
+    )
     st.markdown(banner_html, unsafe_allow_html=True)
 
     st.sidebar.header(tr("data_source"))
