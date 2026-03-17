@@ -116,6 +116,8 @@ I18N = {
         "choose_source": "Choose source",
         "synthetic_well_count": "Synthetic Well Count",
         "dashboard_filters": "Dashboard Filters",
+        "basic_filters": "Basic Filters",
+        "advanced_controls": "Advanced Controls",
         "region_grouping": "Region Grouping",
         "regions": "Regions",
         "well_search": "Well Search",
@@ -141,6 +143,8 @@ I18N = {
         "choose_source": "选择数据源",
         "synthetic_well_count": "模拟井数量",
         "dashboard_filters": "筛选条件",
+        "basic_filters": "基础筛选",
+        "advanced_controls": "高级控制",
         "region_grouping": "区域分组",
         "regions": "区域",
         "well_search": "井名搜索",
@@ -1783,10 +1787,6 @@ def main() -> None:
     if not is_crm:
         synthetic_well_count = st.sidebar.slider(tr("synthetic_well_count"), min_value=50, max_value=400, value=200, step=25)
 
-    if st.sidebar.button("Refresh Data Cache"):
-        st.cache_data.clear()
-        st.rerun()
-
     df = (
         build_crm_dataset(DATA_SCHEMA_VERSION)
         if is_crm
@@ -1802,24 +1802,27 @@ def main() -> None:
     max_date = df["date"].max().date()
 
     st.sidebar.header(tr("dashboard_filters"))
-    if st.sidebar.button("Reset Filters (show Offshore)"):
+    st.sidebar.caption("Keep daily work in Basic Filters. Use Advanced Controls only when needed.")
+    basic_filters = st.sidebar.container()
+    advanced_filters = st.sidebar.expander(tr("advanced_controls"), expanded=False)
+    if basic_filters.button("Reset Filters (show Offshore)"):
         st.session_state["site_types_v3"] = sorted(df["site_type"].unique()) if "site_type" in df.columns else ["Onshore"]
         st.session_state["wells_v3"] = sorted(df["well"].unique())
         st.rerun()
 
-    region_mode = st.sidebar.radio(tr("region_grouping"), options=[tr("grouping_c"), tr("grouping_admin")], index=0)
+    region_mode = basic_filters.radio(tr("region_grouping"), options=[tr("grouping_c"), tr("grouping_admin")], index=0)
     is_c_group = region_mode == tr("grouping_c")
     groups = sorted(df["cluster"].unique()) if is_c_group else sorted(df["region"].unique())
-    selected_groups = st.sidebar.multiselect(tr("regions"), options=groups, default=groups)
+    selected_groups = basic_filters.multiselect(tr("regions"), options=groups, default=groups)
     site_types = sorted(df["site_type"].unique()) if "site_type" in df.columns else ["Onshore"]
     # Use a versioned widget key to reset stale persisted selections from older deployments.
-    selected_site_types = st.sidebar.multiselect(
+    selected_site_types = basic_filters.multiselect(
         tr("site_types"),
         options=site_types,
         default=site_types,
         key="site_types_v3",
     )
-    search = st.sidebar.text_input(tr("well_search"), value="").strip().lower()
+    search = basic_filters.text_input(tr("well_search"), value="").strip().lower()
     well_meta = df.sort_values("date").groupby("well").tail(1)[["well", "cluster", "region", "site_type"]]
     if is_c_group:
         candidate_wells = well_meta[well_meta["cluster"].isin(selected_groups)]["well"].tolist()
@@ -1829,20 +1832,23 @@ def main() -> None:
         site_allowed = set(well_meta[well_meta["site_type"].isin(selected_site_types)]["well"].tolist())
         candidate_wells = [w for w in candidate_wells if w in site_allowed]
     offshore_available = int((well_meta["site_type"] == "Offshore").sum())
-    st.sidebar.caption(f"Available Offshore Wells: {offshore_available}")
-    st.sidebar.caption(f"Selected Site Types: {', '.join(selected_site_types) if selected_site_types else 'None'}")
+    basic_filters.caption(f"Available Offshore Wells: {offshore_available}")
+    basic_filters.caption(f"Selected Site Types: {', '.join(selected_site_types) if selected_site_types else 'None'}")
     if search:
         candidate_wells = [w for w in candidate_wells if search in w.lower()]
     default_wells = candidate_wells
-    selected_wells = st.sidebar.multiselect(
+    selected_wells = basic_filters.multiselect(
         tr("wells"),
         options=candidate_wells,
         default=default_wells,
         key="wells_v3",
     )
-    date_range = st.sidebar.date_input(tr("date_range"), value=(min_date, max_date), min_value=min_date, max_value=max_date)
-    show_boundaries = st.sidebar.checkbox(tr("show_boundaries"), value=True)
-    show_interactive_map = st.sidebar.checkbox(tr("show_interactive"), value=True)
+    date_range = basic_filters.date_input(tr("date_range"), value=(min_date, max_date), min_value=min_date, max_value=max_date)
+    if advanced_filters.button("Refresh Data Cache"):
+        st.cache_data.clear()
+        st.rerun()
+    show_boundaries = advanced_filters.checkbox(tr("show_boundaries"), value=True)
+    show_interactive_map = advanced_filters.checkbox(tr("show_interactive"), value=True)
 
     tab_screen, tab_diagnose, tab_scale = st.tabs([tr("tab_screen"), tr("tab_diagnose"), tr("tab_scale")])
 
