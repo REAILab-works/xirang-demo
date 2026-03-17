@@ -206,6 +206,18 @@ def render_platform_overview(df: pd.DataFrame, is_crm: bool) -> None:
     st.markdown(overview_html, unsafe_allow_html=True)
 
 
+def render_decision_brief(title: str, findings: list[str], action: str) -> None:
+    safe_findings = "".join([f"<li>{item}</li>" for item in findings[:3]])
+    html = f"""
+    <div class="xirang-brief">
+      <div class="xirang-brief-title">{title}</div>
+      <ul class="xirang-brief-list">{safe_findings}</ul>
+      <div class="xirang-brief-action"><strong>Recommended Action:</strong> {action}</div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
+
+
 def render_monitoring_header(latest_all: pd.DataFrame) -> None:
     total = int(latest_all["well"].nunique())
     offshore = int((latest_all["site_type"] == "Offshore").sum()) if "site_type" in latest_all.columns else 0
@@ -846,6 +858,20 @@ def render_monitoring_tab(
     c3.metric(f"Mean Pressure ({pressure_unit})", f"{latest_all['pressure_bar'].mean():.2f}")
     c4.metric("High Alerts", int((latest_all["alert"] == "HIGH").sum()))
     c5.metric("Offshore Wells", int((latest_all["site_type"] == "Offshore").sum()))
+    top_cluster = latest_all["cluster"].value_counts().idxmax()
+    top_region = latest_all["region"].value_counts().idxmax()
+    high_alerts = int((latest_all["alert"] == "HIGH").sum())
+    offshore_count = int((latest_all["site_type"] == "Offshore").sum())
+    if show_screen_blocks:
+        render_decision_brief(
+            "Screening Summary",
+            [
+                f"Dominant cluster: {top_cluster}; dominant region: {top_region}.",
+                f"Offshore footprint: {offshore_count} wells out of {len(selected_wells)} selected.",
+                f"Current high-alert count is {high_alerts}; boundary logic is {'on' if show_boundaries else 'off'}.",
+            ],
+            "Keep current filters, then move to Diagnose for top-risk wells and confirm pressure drift drivers.",
+        )
 
     selection = {}
     if show_screen_blocks:
@@ -1001,6 +1027,15 @@ def render_monitoring_tab(
     ib.metric("Risk Level", intel["risk_level"])
     ic.metric("Agent Confidence", f"{intel['confidence']:.2f}")
     idm.metric("Drift", f"{intel['drift']:.2f}")
+    render_decision_brief(
+        "Diagnosis Summary",
+        [
+            f"Focus well {focus_well} risk score is {intel['risk_score']:.1f}/100 ({intel['risk_level']}).",
+            f"Agent confidence is {intel['confidence']:.2f} with drift indicator {intel['drift']:.2f}.",
+            f"Pressure mean is {focus['pressure_bar'].mean():.2f} {pressure_unit}; flow mean is {focus['flow_m3h'].mean():.2f} {flow_unit}.",
+        ],
+        "Execute the top action in the plan, then re-check risk score after the next update window.",
+    )
 
     st.markdown("**Agent Diagnosis**")
     for cause in intel["causes"]:
@@ -1102,6 +1137,24 @@ def render_gcam_tab() -> None:
     r1.metric("Variable", sel_variable)
     r2.metric(f"Global Total ({latest_year})", f"{total_latest:,.2f} {unit}")
     r3.metric("Scenarios Selected", len(sel_scenarios))
+    top_region_row = (
+        g_filtered[g_filtered["year"] == sel_year]
+        .groupby("region", as_index=False)["value"]
+        .sum()
+        .sort_values("value", ascending=False)
+        .head(1)
+    )
+    top_region_name = top_region_row["region"].iloc[0]
+    top_region_value = float(top_region_row["value"].iloc[0])
+    render_decision_brief(
+        "Scale Summary",
+        [
+            f"Current variable: {sel_variable}; selected scenarios: {len(sel_scenarios)}.",
+            f"Global total in {latest_year}: {total_latest:,.2f} {unit}.",
+            f"Top region at ranking year {sel_year}: {top_region_name} ({top_region_value:,.2f} {unit}).",
+        ],
+        "Use this configuration as the baseline scenario package, then compare one alternative scenario before policy interpretation.",
+    )
 
     g_meta = pd.DataFrame(
         [
@@ -1545,6 +1598,36 @@ def main() -> None:
         color: #5e6c63;
         font-size: 0.96rem;
         line-height: 1.45;
+    }
+    .xirang-brief {
+        margin: 0.28rem 0 0.75rem 0;
+        padding: 0.68rem 0.86rem;
+        border: 1px solid rgba(35, 49, 41, 0.12);
+        border-radius: 10px;
+        background: rgba(249, 247, 241, 0.66);
+    }
+    .xirang-brief-title {
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.9rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #5f6f62;
+        font-weight: 800;
+        margin-bottom: 0.32rem;
+    }
+    .xirang-brief-list {
+        margin: 0;
+        padding-left: 1rem;
+        color: #4f5f55;
+        font-size: 0.92rem;
+        line-height: 1.4;
+    }
+    .xirang-brief-action {
+        margin-top: 0.38rem;
+        padding-top: 0.36rem;
+        border-top: 1px dashed rgba(35,49,41,0.16);
+        font-size: 0.92rem;
+        color: #425249;
     }
     .xirang-legend {
         display: flex;
