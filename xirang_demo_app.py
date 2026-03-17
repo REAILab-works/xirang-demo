@@ -105,7 +105,7 @@ GCAM_REGION_COLOR_PATH = PROJECT_ROOT / "data" / "gcam" / "region_colors.csv"
 GCAM_ISO3_PATH = PROJECT_ROOT / "data" / "gcam" / "region_iso3.csv"
 GEOTHERMAL_POTENTIAL_PATH = PROJECT_ROOT / "data" / "geothermal" / "global_geothermal_potential.csv"
 DATA_SCHEMA_VERSION = "2026-02-22-offshore-v1"
-BUILD_TAG = "ui-fern-v3"
+BUILD_TAG = "ui-fern-v4"
 
 I18N = {
     "en": {
@@ -193,22 +193,49 @@ def render_platform_overview(df: pd.DataFrame, is_crm: bool) -> None:
       <div class="xirang-overview-card">
         <div class="xirang-kicker">Platform</div>
         <div class="xirang-overview-value">Subsurface energy transition intelligence</div>
+        <div class="xirang-overview-note">Built for buried assets, retired wells, and long-horizon infrastructure reuse.</div>
       </div>
       <div class="xirang-overview-card">
         <div class="xirang-kicker">Current layer</div>
         <div class="xirang-overview-value">%s · %d wells · %d offshore</div>
+        <div class="xirang-overview-note">A live operational slice of the current field with offshore anchors retained.</div>
       </div>
       <div class="xirang-overview-card">
         <div class="xirang-kicker">System logic</div>
         <div class="xirang-overview-value">%s · North Sea-led reuse corridor</div>
+        <div class="xirang-overview-note">Regional logic favors continuity, reuse, and corridor-level interpretation.</div>
       </div>
       <div class="xirang-overview-card">
         <div class="xirang-kicker">Operating modes</div>
         <div class="xirang-overview-value">UK field monitoring · Global scenario atlas</div>
+        <div class="xirang-overview-note">Move from rapid screening to diagnosis, then scale toward scenario-level decisions.</div>
       </div>
     </div>
     """ % (source_label, total_wells, offshore_wells, clusters)
     st.markdown(overview_html, unsafe_allow_html=True)
+
+
+def render_mode_strip() -> None:
+    html = """
+    <div class="xirang-mode-strip">
+      <div class="xirang-mode-card">
+        <div class="xirang-mode-kicker">01</div>
+        <div class="xirang-mode-title">Screen</div>
+        <div class="xirang-mode-note">Find priority wells, offshore clusters, and spatial concentration fast.</div>
+      </div>
+      <div class="xirang-mode-card">
+        <div class="xirang-mode-kicker">02</div>
+        <div class="xirang-mode-title">Diagnose</div>
+        <div class="xirang-mode-note">Inspect drift, pressure behavior, agent signals, and likely causes.</div>
+      </div>
+      <div class="xirang-mode-card">
+        <div class="xirang-mode-kicker">03</div>
+        <div class="xirang-mode-title">Scale</div>
+        <div class="xirang-mode-note">Move from local field evidence to global GCAM and geothermal scenarios.</div>
+      </div>
+    </div>
+    """
+    st.markdown(html, unsafe_allow_html=True)
 
 
 def render_decision_brief(title: str, findings: list[str], action: str) -> None:
@@ -1537,12 +1564,14 @@ def main() -> None:
     .xirang-hero {
         position: relative;
         overflow: hidden;
-        padding: 0.92rem 1.05rem 0.82rem 1.05rem;
-        margin: 0.1rem 0 0.55rem 0;
+        padding: 1.2rem 1.2rem 1.05rem 1.2rem;
+        margin: 0.12rem 0 0.7rem 0;
         border: 1px solid var(--x-line);
-        border-radius: 12px;
-        background: linear-gradient(180deg, rgba(250,248,242,0.92), rgba(247,244,236,0.96));
-        box-shadow: none;
+        border-radius: 18px;
+        background:
+            radial-gradient(circle at right top, rgba(109,131,99,0.16), transparent 26%),
+            linear-gradient(180deg, rgba(250,248,242,0.96), rgba(245,241,233,0.98));
+        box-shadow: 0 10px 28px rgba(35, 49, 41, 0.05);
         animation: xirang-fade-up 0.5s ease-out;
     }
     .xirang-hero::before {
@@ -1559,20 +1588,66 @@ def main() -> None:
     .xirang-hero::after {
         content: "";
         position: absolute;
-        width: 8rem;
-        height: 1px;
-        left: 1.15rem;
-        bottom: 0.85rem;
-        background: linear-gradient(90deg, rgba(109,131,99,0.55), rgba(180,157,121,0.15));
+        width: 10rem;
+        height: 2px;
+        left: 1.2rem;
+        bottom: 1rem;
+        background: linear-gradient(90deg, rgba(109,131,99,0.8), rgba(180,157,121,0.2));
         pointer-events: none;
+    }
+    .xirang-hero-grid {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.9fr);
+        gap: 1rem;
+        align-items: stretch;
+    }
+    .xirang-hero-main {
+        min-width: 0;
+    }
+    .xirang-hero-side {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.6rem;
+        align-content: start;
+    }
+    .xirang-side-card {
+        border-radius: 14px;
+        padding: 0.72rem 0.84rem;
+        background: rgba(255,255,255,0.45);
+        border: 1px solid rgba(49, 71, 58, 0.10);
+        backdrop-filter: blur(4px);
+    }
+    .xirang-side-kicker {
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.68rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #6d7a71;
+        font-weight: 800;
+        margin-bottom: 0.25rem;
+    }
+    .xirang-side-value {
+        font-family: 'Manrope', sans-serif;
+        color: var(--x-fern);
+        font-size: 1.02rem;
+        line-height: 1.3;
+        font-weight: 800;
+    }
+    .xirang-side-note {
+        color: #617067;
+        font-size: 0.88rem;
+        line-height: 1.35;
+        margin-top: 0.18rem;
     }
     .xirang-title {
         position: relative;
         z-index: 1;
-        font-size: 2.35rem;
+        font-size: 2.9rem;
         font-weight: 800;
         line-height: 1.05;
-        margin: 0.28rem 0 0.18rem 0;
+        margin: 0.32rem 0 0.2rem 0;
         color: var(--x-fern);
         letter-spacing: -0.06rem;
     }
@@ -1620,23 +1695,17 @@ def main() -> None:
     .xirang-overview {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 0;
-        margin: 0.08rem 0 0.7rem 0;
+        gap: 0.7rem;
+        margin: 0.12rem 0 0.85rem 0;
         animation: xirang-fade-up 0.62s ease-out;
-        border-top: 1px solid rgba(35, 49, 41, 0.08);
-        border-bottom: 1px solid rgba(35, 49, 41, 0.08);
-        background: rgba(249,247,241,0.42);
     }
     .xirang-overview-card {
-        padding: 0.72rem 0.82rem 0.68rem 0.82rem;
-        border-radius: 0;
-        border: 0;
-        border-right: 1px solid rgba(35, 49, 41, 0.08);
-        background: transparent;
-        box-shadow: none;
-    }
-    .xirang-overview-card:last-child {
-        border-right: 0;
+        padding: 0.9rem 0.92rem 0.88rem 0.92rem;
+        border-radius: 14px;
+        border: 1px solid rgba(35, 49, 41, 0.08);
+        border-top: 4px solid rgba(109,131,99,0.5);
+        background: rgba(250,248,242,0.72);
+        box-shadow: 0 6px 16px rgba(35, 49, 41, 0.03);
     }
     .xirang-kicker {
         font-family: 'Manrope', sans-serif;
@@ -1649,10 +1718,50 @@ def main() -> None:
     }
     .xirang-overview-value {
         font-family: 'Manrope', sans-serif;
-        font-size: 0.98rem;
+        font-size: 1.02rem;
         font-weight: 800;
         color: var(--x-fern);
         line-height: 1.34;
+    }
+    .xirang-overview-note {
+        margin-top: 0.26rem;
+        color: #67756d;
+        font-size: 0.87rem;
+        line-height: 1.38;
+    }
+    .xirang-mode-strip {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.72rem;
+        margin: 0.2rem 0 0.95rem 0;
+    }
+    .xirang-mode-card {
+        padding: 0.9rem 0.95rem;
+        border-radius: 14px;
+        border: 1px solid rgba(35, 49, 41, 0.08);
+        background: linear-gradient(180deg, rgba(250,248,242,0.80), rgba(247,244,236,0.92));
+        box-shadow: 0 6px 16px rgba(35, 49, 41, 0.03);
+    }
+    .xirang-mode-kicker {
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--x-moss);
+        margin-bottom: 0.28rem;
+    }
+    .xirang-mode-title {
+        font-family: 'Manrope', sans-serif;
+        color: var(--x-fern);
+        font-size: 1.06rem;
+        font-weight: 800;
+        margin-bottom: 0.18rem;
+    }
+    .xirang-mode-note {
+        color: #66756b;
+        font-size: 0.9rem;
+        line-height: 1.38;
     }
     .xirang-narrative {
         margin: 0.05rem 0 0.75rem 0;
@@ -1797,29 +1906,28 @@ def main() -> None:
         to { opacity: 1; transform: translateY(0); }
     }
     @media (max-width: 1100px) {
+        .xirang-hero-grid {
+            grid-template-columns: 1fr;
+        }
         .xirang-overview {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
-        .xirang-overview-card:nth-child(2) {
-            border-right: 0;
+        .xirang-mode-strip {
+            grid-template-columns: 1fr;
         }
         .xirang-title {
-            font-size: 2.35rem;
+            font-size: 2.45rem;
         }
     }
     @media (max-width: 700px) {
         .xirang-overview {
             grid-template-columns: 1fr;
         }
-        .xirang-overview-card {
-            border-right: 0;
-            border-bottom: 1px solid rgba(35, 49, 41, 0.08);
-        }
-        .xirang-overview-card:last-child {
-            border-bottom: 0;
+        .xirang-mode-strip {
+            grid-template-columns: 1fr;
         }
         .xirang-title {
-            font-size: 1.95rem;
+            font-size: 2.05rem;
         }
         .xirang-subtitle {
             font-size: 0.95rem;
@@ -1827,10 +1935,26 @@ def main() -> None:
     }
     </style>
     <div class="xirang-hero">
-    <div class="xirang-lab">REAI Lab · Build __BUILD_TAG__</div>
-    <div class="xirang-title">XIRANG (息壤)</div>
-    <div class="xirang-subtitle">__SUBTITLE_HTML__</div>
-    <div class="xirang-root-note">Not a platform that blooms on the surface, but a system that grows from depth: through subsurface space, retired infrastructure, and overlooked energy assets that can still extend into new networks.</div>
+      <div class="xirang-hero-grid">
+        <div class="xirang-hero-main">
+          <div class="xirang-lab">REAI Lab · Build __BUILD_TAG__</div>
+          <div class="xirang-title">XIRANG (息壤)</div>
+          <div class="xirang-subtitle">__SUBTITLE_HTML__</div>
+          <div class="xirang-root-note">A field system for subsurface transition: growing through retired infrastructure, hidden thermal assets, and buried network capacity rather than surface-level expansion alone.</div>
+        </div>
+        <div class="xirang-hero-side">
+          <div class="xirang-side-card">
+            <div class="xirang-side-kicker">Focus</div>
+            <div class="xirang-side-value">From UK well screening to global scenario scale-up</div>
+            <div class="xirang-side-note">One system for local diagnosis, infrastructure reuse, and policy-facing interpretation.</div>
+          </div>
+          <div class="xirang-side-card">
+            <div class="xirang-side-kicker">Design principle</div>
+            <div class="xirang-side-value">Spread, not bloom</div>
+            <div class="xirang-side-note">Quiet, persistent expansion through wells, corridors, and long-lived assets.</div>
+          </div>
+        </div>
+      </div>
     </div>
     """
     banner_html = (
@@ -1858,6 +1982,7 @@ def main() -> None:
         df = df.copy()
         df["site_type"] = "Onshore"
     render_platform_overview(df, is_crm)
+    render_mode_strip()
     wells = sorted(df["well"].unique())
     min_date = df["date"].min().date()
     max_date = df["date"].max().date()
