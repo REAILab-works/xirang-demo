@@ -109,8 +109,9 @@ BUILD_TAG = "ui-fern-v2"
 I18N = {
     "en": {
         "subtitle": "eXplainable Intelligent Resilience Agent Network for Geothermal systems",
-        "tab_monitor": "UK Well Monitoring",
-        "tab_gcam": "Global GCAM Scenarios",
+        "tab_screen": "Screen",
+        "tab_diagnose": "Diagnose",
+        "tab_scale": "Scale",
         "data_source": "Data Source",
         "choose_source": "Choose source",
         "synthetic_well_count": "Synthetic Well Count",
@@ -133,8 +134,9 @@ I18N = {
     },
     "zh": {
         "subtitle": "eXplainable Intelligent Resilience Agent Network for Geothermal systems",
-        "tab_monitor": "英国井网监测",
-        "tab_gcam": "全球GCAM情景",
+        "tab_screen": "筛查",
+        "tab_diagnose": "诊断",
+        "tab_scale": "扩展",
         "data_source": "数据源",
         "choose_source": "选择数据源",
         "synthetic_well_count": "模拟井数量",
@@ -797,6 +799,7 @@ def render_monitoring_tab(
     is_crm: bool,
     show_boundaries: bool,
     show_interactive_map: bool,
+    view_mode: str = "screen",
 ) -> None:
     filtered = filtered.copy()
     signal_unit = "a.u."
@@ -805,33 +808,36 @@ def render_monitoring_tab(
     if "quality_tag" not in filtered.columns:
         filtered["quality_tag"] = "Modeled" if is_crm else "Observed"
 
-    time_start = filtered["date"].min().strftime("%Y-%m-%d")
-    time_end = filtered["date"].max().strftime("%Y-%m-%d")
-    source_text = filtered["source"].iloc[0] if "source" in filtered.columns else "Unknown"
-    meta_df = pd.DataFrame(
-        [
-            {
-                "Data Source": source_text,
-                "Time Range": f"{time_start} to {time_end}",
-                "Signal Unit": "proxy / modeled",
-                "Scenario": "Operational Monitoring",
-            }
-        ]
-    )
-    st.caption("Figure Metadata")
-    st.dataframe(meta_df, use_container_width=True, hide_index=True)
-    q_counts = filtered["quality_tag"].value_counts().reset_index()
-    q_counts.columns = ["Data Status", "Count"]
-    st.caption("Data Status (Observed / Modeled / Mapped / Imputed)")
-    st.dataframe(q_counts, use_container_width=True, hide_index=True)
-    with st.expander("Failures & Data Quality", expanded=False):
-        qa_rows = [
-            {"Check": "Missing dates", "Count": int(filtered["date"].isna().sum()), "Status": "FAIL" if filtered["date"].isna().sum() else "PASS"},
-            {"Check": "Missing actual signal", "Count": int(filtered["actual"].isna().sum()), "Status": "FAIL" if filtered["actual"].isna().sum() else "PASS"},
-            {"Check": "Duplicate rows (date,well)", "Count": int(filtered.duplicated(subset=["date", "well"]).sum()), "Status": "FAIL" if filtered.duplicated(subset=["date", "well"]).sum() else "PASS"},
-        ]
-        qa_df = pd.DataFrame(qa_rows)
-        st.dataframe(qa_df, use_container_width=True, hide_index=True)
+    show_screen_blocks = view_mode == "screen"
+    show_diagnose_blocks = view_mode == "diagnose"
+    if show_diagnose_blocks:
+        time_start = filtered["date"].min().strftime("%Y-%m-%d")
+        time_end = filtered["date"].max().strftime("%Y-%m-%d")
+        source_text = filtered["source"].iloc[0] if "source" in filtered.columns else "Unknown"
+        meta_df = pd.DataFrame(
+            [
+                {
+                    "Data Source": source_text,
+                    "Time Range": f"{time_start} to {time_end}",
+                    "Signal Unit": "proxy / modeled",
+                    "Scenario": "Operational Monitoring",
+                }
+            ]
+        )
+        st.caption("Figure Metadata")
+        st.dataframe(meta_df, use_container_width=True, hide_index=True)
+        q_counts = filtered["quality_tag"].value_counts().reset_index()
+        q_counts.columns = ["Data Status", "Count"]
+        st.caption("Data Status (Observed / Modeled / Mapped / Imputed)")
+        st.dataframe(q_counts, use_container_width=True, hide_index=True)
+        with st.expander("Failures & Data Quality", expanded=False):
+            qa_rows = [
+                {"Check": "Missing dates", "Count": int(filtered["date"].isna().sum()), "Status": "FAIL" if filtered["date"].isna().sum() else "PASS"},
+                {"Check": "Missing actual signal", "Count": int(filtered["actual"].isna().sum()), "Status": "FAIL" if filtered["actual"].isna().sum() else "PASS"},
+                {"Check": "Duplicate rows (date,well)", "Count": int(filtered.duplicated(subset=["date", "well"]).sum()), "Status": "FAIL" if filtered.duplicated(subset=["date", "well"]).sum() else "PASS"},
+            ]
+            qa_df = pd.DataFrame(qa_rows)
+            st.dataframe(qa_df, use_container_width=True, hide_index=True)
 
     c1, c2, c3, c4, c5 = st.columns(5)
     latest_all = latest_status_table(filtered, is_crm=is_crm)
@@ -841,120 +847,122 @@ def render_monitoring_tab(
     c4.metric("High Alerts", int((latest_all["alert"] == "HIGH").sum()))
     c5.metric("Offshore Wells", int((latest_all["site_type"] == "Offshore").sum()))
 
-    render_monitoring_header(latest_all)
-    st.subheader("UK Well Map (Latest Snapshot)")
-    render_monitoring_legend()
-    map_df = latest_all.copy()
-    map_df["color_hex"] = map_df["cluster"].map(CLUSTER_COLORS_HEX).fillna("#6b7280")
-    map_df["color"] = map_df["color_hex"].apply(lambda h: hex_to_rgba(h, 220))
-    map_df["line_color"] = map_df["alert"].map({"HIGH": [165, 0, 38, 255], "OK": [20, 20, 20, 190]})
-    map_df["line_width"] = map_df["alert"].map({"HIGH": 2.8, "OK": 1.2})
-    uk_view = pdk.ViewState(latitude=54.6, longitude=-1.7, zoom=4.35, pitch=0)
-    point_layer = pdk.Layer(
-        "ScatterplotLayer",
-        data=map_df,
-        get_position="[lon, lat]",
-        get_fill_color="color",
-        get_radius=20000,
-        stroked=True,
-        get_line_color="line_color",
-        get_line_width="line_width",
-        line_width_min_pixels=1,
-        pickable=True,
-    )
-    offshore_df = map_df[map_df["site_type"] == "Offshore"].copy()
-    offshore_df["marker"] = "▲"
-    offshore_layer = pdk.Layer(
-        "TextLayer",
-        data=offshore_df,
-        get_position="[lon, lat]",
-        get_text="marker",
-        get_color=[17, 24, 39, 245],
-        get_size=20,
-        get_angle=0,
-        get_text_anchor="middle",
-        get_alignment_baseline="center",
-        pickable=False,
-    )
-    layers = []
-    if show_boundaries:
-        boundary_data = pd.DataFrame(
-            {"name": list(UK_BOUNDARIES.keys()), "polygon": list(UK_BOUNDARIES.values())}
-        )
-        boundary_layer = pdk.Layer(
-            "PolygonLayer",
-            data=boundary_data,
-            get_polygon="polygon",
-            get_line_color=[55, 65, 81],
-            get_fill_color=[0, 0, 0, 0],
-            line_width_min_pixels=2,
+    selection = {}
+    if show_screen_blocks:
+        render_monitoring_header(latest_all)
+        st.subheader("UK Well Map (Latest Snapshot)")
+        render_monitoring_legend()
+        map_df = latest_all.copy()
+        map_df["color_hex"] = map_df["cluster"].map(CLUSTER_COLORS_HEX).fillna("#6b7280")
+        map_df["color"] = map_df["color_hex"].apply(lambda h: hex_to_rgba(h, 220))
+        map_df["line_color"] = map_df["alert"].map({"HIGH": [165, 0, 38, 255], "OK": [20, 20, 20, 190]})
+        map_df["line_width"] = map_df["alert"].map({"HIGH": 2.8, "OK": 1.2})
+        uk_view = pdk.ViewState(latitude=54.6, longitude=-1.7, zoom=4.35, pitch=0)
+        point_layer = pdk.Layer(
+            "ScatterplotLayer",
+            data=map_df,
+            get_position="[lon, lat]",
+            get_fill_color="color",
+            get_radius=20000,
             stroked=True,
-            filled=False,
+            get_line_color="line_color",
+            get_line_width="line_width",
+            line_width_min_pixels=1,
+            pickable=True,
+        )
+        offshore_df = map_df[map_df["site_type"] == "Offshore"].copy()
+        offshore_df["marker"] = "▲"
+        offshore_layer = pdk.Layer(
+            "TextLayer",
+            data=offshore_df,
+            get_position="[lon, lat]",
+            get_text="marker",
+            get_color=[17, 24, 39, 245],
+            get_size=20,
+            get_angle=0,
+            get_text_anchor="middle",
+            get_alignment_baseline="center",
             pickable=False,
         )
-        layers.append(boundary_layer)
-    layers.append(point_layer)
-    if not offshore_df.empty:
-        layers.append(offshore_layer)
-    tooltip = {
-        "html": f"<b>{{well}}</b><br/>Region: {{region}}<br/>Site: {{site_type}}<br/>Cluster: {{cluster}}<br/>Signal ({signal_unit}): {{actual}}<br/>Pressure ({pressure_unit}): {{pressure_bar}}<br/>Alert: {{alert}}",
-        "style": {"backgroundColor": "#111827", "color": "white"},
-    }
-    if show_interactive_map:
-        st.pydeck_chart(
-            pdk.Deck(
-                map_style=None,
-                initial_view_state=uk_view,
-                layers=layers,
-                tooltip=tooltip,
-            ),
-            use_container_width=True,
-        )
-
-    st.markdown("**Fallback UK Coordinate Plot (always visible)**")
-    point_select = alt.selection_point(fields=["well"], name="well_pick", on="click", clear="dblclick")
-    x_scale = alt.Scale(domain=[-8.8, 5.0])
-    y_scale = alt.Scale(domain=[49.7, 59.0])
-    base_points = (
-        alt.Chart(map_df)
-        .mark_circle(size=140)
-        .encode(
-            x=alt.X("lon:Q", title="Longitude", scale=x_scale),
-            y=alt.Y("lat:Q", title="Latitude", scale=y_scale),
-            color=alt.Color("alert:N", title="Alert Level", scale=alt.Scale(domain=["OK", "HIGH"], range=["#22c55e", "#dc3545"])),
-            shape=alt.Shape("site_type:N", title="Site Type", scale=alt.Scale(domain=["Onshore", "Offshore"], range=["circle", "triangle-up"])),
-            opacity=alt.condition(point_select, alt.value(1.0), alt.value(0.75)),
-            tooltip=[
-                "well:N",
-                "region:N",
-                "site_type:N",
-                "cluster:N",
-                "alert:N",
-                alt.Tooltip("actual:Q", title=f"Signal ({signal_unit})", format=".2f"),
-                alt.Tooltip("flow_m3h:Q", title=f"Flow ({flow_unit})", format=".2f"),
-                alt.Tooltip("pressure_bar:Q", title=f"Pressure ({pressure_unit})", format=".2f"),
-            ],
-        )
-        .add_params(point_select)
-    )
-    if show_boundaries:
-        boundary_chart = (
-            alt.Chart(boundary_lines_df())
-            .mark_line(color="#4b5563", strokeWidth=2)
-            .encode(
-                x=alt.X("lon:Q", title=None, scale=x_scale),
-                y=alt.Y("lat:Q", title=None, scale=y_scale),
-                detail="country:N",
+        layers = []
+        if show_boundaries:
+            boundary_data = pd.DataFrame(
+                {"name": list(UK_BOUNDARIES.keys()), "polygon": list(UK_BOUNDARIES.values())}
             )
+            boundary_layer = pdk.Layer(
+                "PolygonLayer",
+                data=boundary_data,
+                get_polygon="polygon",
+                get_line_color=[55, 65, 81],
+                get_fill_color=[0, 0, 0, 0],
+                line_width_min_pixels=2,
+                stroked=True,
+                filled=False,
+                pickable=False,
+            )
+            layers.append(boundary_layer)
+        layers.append(point_layer)
+        if not offshore_df.empty:
+            layers.append(offshore_layer)
+        tooltip = {
+            "html": f"<b>{{well}}</b><br/>Region: {{region}}<br/>Site: {{site_type}}<br/>Cluster: {{cluster}}<br/>Signal ({signal_unit}): {{actual}}<br/>Pressure ({pressure_unit}): {{pressure_bar}}<br/>Alert: {{alert}}",
+            "style": {"backgroundColor": "#111827", "color": "white"},
+        }
+        if show_interactive_map:
+            st.pydeck_chart(
+                pdk.Deck(
+                    map_style=None,
+                    initial_view_state=uk_view,
+                    layers=layers,
+                    tooltip=tooltip,
+                ),
+                use_container_width=True,
+            )
+
+        st.markdown("**Fallback UK Coordinate Plot (always visible)**")
+        point_select = alt.selection_point(fields=["well"], name="well_pick", on="click", clear="dblclick")
+        x_scale = alt.Scale(domain=[-8.8, 5.0])
+        y_scale = alt.Scale(domain=[49.7, 59.0])
+        base_points = (
+            alt.Chart(map_df)
+            .mark_circle(size=140)
+            .encode(
+                x=alt.X("lon:Q", title="Longitude", scale=x_scale),
+                y=alt.Y("lat:Q", title="Latitude", scale=y_scale),
+                color=alt.Color("alert:N", title="Alert Level", scale=alt.Scale(domain=["OK", "HIGH"], range=["#22c55e", "#dc3545"])),
+                shape=alt.Shape("site_type:N", title="Site Type", scale=alt.Scale(domain=["Onshore", "Offshore"], range=["circle", "triangle-up"])),
+                opacity=alt.condition(point_select, alt.value(1.0), alt.value(0.75)),
+                tooltip=[
+                    "well:N",
+                    "region:N",
+                    "site_type:N",
+                    "cluster:N",
+                    "alert:N",
+                    alt.Tooltip("actual:Q", title=f"Signal ({signal_unit})", format=".2f"),
+                    alt.Tooltip("flow_m3h:Q", title=f"Flow ({flow_unit})", format=".2f"),
+                    alt.Tooltip("pressure_bar:Q", title=f"Pressure ({pressure_unit})", format=".2f"),
+                ],
+            )
+            .add_params(point_select)
         )
-        # Streamlit currently disallows on_select for multi-view specs.
-        st.altair_chart(boundary_chart.properties(height=170), use_container_width=True)
-    selection = st.altair_chart(
-        base_points.properties(height=360),
-        use_container_width=True,
-        on_select="rerun",
-    )
-    st.dataframe(latest_all.reset_index(drop=True), use_container_width=True)
+        if show_boundaries:
+            boundary_chart = (
+                alt.Chart(boundary_lines_df())
+                .mark_line(color="#4b5563", strokeWidth=2)
+                .encode(
+                    x=alt.X("lon:Q", title=None, scale=x_scale),
+                    y=alt.Y("lat:Q", title=None, scale=y_scale),
+                    detail="country:N",
+                )
+            )
+            # Streamlit currently disallows on_select for multi-view specs.
+            st.altair_chart(boundary_chart.properties(height=170), use_container_width=True)
+        selection = st.altair_chart(
+            base_points.properties(height=360),
+            use_container_width=True,
+            on_select="rerun",
+        )
+        st.dataframe(latest_all.reset_index(drop=True), use_container_width=True)
 
     st.subheader("Single-Well Detail")
     selected_from_map = None
@@ -969,6 +977,10 @@ def render_monitoring_tab(
     if selected_from_map is not None:
         default_focus_idx = selected_wells.index(selected_from_map)
 
+    if not show_diagnose_blocks:
+        return
+
+    st.subheader("Single-Well Diagnostics")
     focus_well = st.selectbox("Focus Well", selected_wells, index=default_focus_idx)
     focus = filtered[filtered["well"] == focus_well].sort_values("date")
     intel = agent_intelligence(focus)
@@ -1749,35 +1761,53 @@ def main() -> None:
     show_boundaries = st.sidebar.checkbox(tr("show_boundaries"), value=True)
     show_interactive_map = st.sidebar.checkbox(tr("show_interactive"), value=True)
 
-    tab_monitor, tab_gcam = st.tabs([tr("tab_monitor"), tr("tab_gcam")])
+    tab_screen, tab_diagnose, tab_scale = st.tabs([tr("tab_screen"), tr("tab_diagnose"), tr("tab_scale")])
 
-    with tab_monitor:
-        st.caption("UK subsurface field view for monitoring inherited infrastructure, offshore clustering, and gradual system extension.")
-        if not selected_wells:
-            st.warning(tr("need_one_well"))
-        elif not isinstance(date_range, tuple) or len(date_range) != 2:
-            st.warning(tr("need_valid_date"))
+    filtered = None
+    if not selected_wells:
+        selection_warning = tr("need_one_well")
+    elif not isinstance(date_range, tuple) or len(date_range) != 2:
+        selection_warning = tr("need_valid_date")
+    else:
+        start_date, end_date = date_range
+        mask = (
+            df["well"].isin(selected_wells)
+            & (df["date"].dt.date >= start_date)
+            & (df["date"].dt.date <= end_date)
+        )
+        filtered = df.loc[mask].copy()
+        selection_warning = tr("no_data_range") if filtered.empty else ""
+
+    with tab_screen:
+        st.caption("Identify priority wells and offshore clusters for fast screening.")
+        if selection_warning:
+            st.warning(selection_warning)
         else:
-            start_date, end_date = date_range
-            mask = (
-                df["well"].isin(selected_wells)
-                & (df["date"].dt.date >= start_date)
-                & (df["date"].dt.date <= end_date)
+            render_monitoring_tab(
+                filtered=filtered,
+                selected_wells=selected_wells,
+                is_crm=is_crm,
+                show_boundaries=show_boundaries,
+                show_interactive_map=show_interactive_map,
+                view_mode="screen",
             )
-            filtered = df.loc[mask].copy()
-            if filtered.empty:
-                st.warning(tr("no_data_range"))
-            else:
-                render_monitoring_tab(
-                    filtered=filtered,
-                    selected_wells=selected_wells,
-                    is_crm=is_crm,
-                    show_boundaries=show_boundaries,
-                    show_interactive_map=show_interactive_map,
-                )
 
-    with tab_gcam:
-        st.caption("Global field view for scenario comparison, region mapping, and geothermal potential as a slow-expanding energy layer.")
+    with tab_diagnose:
+        st.caption("Inspect single-well behavior, risk drivers, and recommended execution plans.")
+        if selection_warning:
+            st.warning(selection_warning)
+        else:
+            render_monitoring_tab(
+                filtered=filtered,
+                selected_wells=selected_wells,
+                is_crm=is_crm,
+                show_boundaries=show_boundaries,
+                show_interactive_map=show_interactive_map,
+                view_mode="diagnose",
+            )
+
+    with tab_scale:
+        st.caption("Scale from local operations to global scenario decisions with GCAM and geothermal potential.")
         render_gcam_tab()
 
 
