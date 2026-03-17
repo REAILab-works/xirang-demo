@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from os.path import join
 from pathlib import Path
 from difflib import SequenceMatcher, get_close_matches
+import json
 
 import numpy as np
 import pandas as pd
@@ -220,6 +221,22 @@ def render_decision_brief(title: str, findings: list[str], action: str) -> None:
     </div>
     """
     st.markdown(html, unsafe_allow_html=True)
+
+
+def render_export_panel(title: str, data: pd.DataFrame, snapshot: dict, csv_name: str, json_name: str) -> None:
+    with st.expander(title, expanded=False):
+        st.download_button(
+            "Download CSV",
+            data=data.to_csv(index=False).encode("utf-8"),
+            file_name=csv_name,
+            mime="text/csv",
+        )
+        st.download_button(
+            "Download Snapshot",
+            data=json.dumps(snapshot, ensure_ascii=False, indent=2).encode("utf-8"),
+            file_name=json_name,
+            mime="application/json",
+        )
 
 
 def render_monitoring_header(latest_all: pd.DataFrame) -> None:
@@ -969,6 +986,20 @@ def render_monitoring_tab(
         )
         with st.expander("Supporting Tables", expanded=False):
             st.dataframe(latest_all.reset_index(drop=True), use_container_width=True)
+        render_export_panel(
+            "Export Current Screen",
+            latest_all.reset_index(drop=True),
+            {
+                "view": "screen",
+                "selected_wells": selected_wells,
+                "time_range": [time_start, time_end],
+                "show_boundaries": show_boundaries,
+                "show_interactive_map": show_interactive_map,
+                "selected_count": len(selected_wells),
+            },
+            "xirang_screen.csv",
+            "xirang_screen_snapshot.json",
+        )
 
     selected_from_map = None
     if isinstance(selection, dict):
@@ -1014,6 +1045,20 @@ def render_monitoring_tab(
             f"Pressure mean is {focus['pressure_bar'].mean():.2f} {pressure_unit}; flow mean is {focus['flow_m3h'].mean():.2f} {flow_unit}.",
         ],
         "Execute the top action in the plan, then re-check risk score after the next update window.",
+    )
+    render_export_panel(
+        "Export Current Diagnosis",
+        focus.reset_index(drop=True),
+        {
+            "view": "diagnose",
+            "focus_well": focus_well,
+            "time_range": [time_start, time_end],
+            "risk_score": round(float(intel["risk_score"]), 2),
+            "risk_level": intel["risk_level"],
+            "agent_confidence": round(float(intel["confidence"]), 3),
+        },
+        f"{focus_well}_diagnosis.csv",
+        f"{focus_well}_diagnosis_snapshot.json",
     )
 
     with st.expander("Metadata & QA", expanded=False):
@@ -1151,6 +1196,21 @@ def render_gcam_tab() -> None:
             f"Top region at ranking year {sel_year}: {top_region_name} ({top_region_value:,.2f} {unit}).",
         ],
         "Use this configuration as the baseline scenario package, then compare one alternative scenario before policy interpretation.",
+    )
+    render_export_panel(
+        "Export Current Scale View",
+        g_filtered.reset_index(drop=True),
+        {
+            "view": "scale",
+            "variable": sel_variable,
+            "unit": unit,
+            "scenarios": sel_scenarios,
+            "regions": sel_regions,
+            "ranking_year": int(sel_year),
+            "latest_year": latest_year,
+        },
+        "xirang_scale.csv",
+        "xirang_scale_snapshot.json",
     )
 
     g_meta = pd.DataFrame(
