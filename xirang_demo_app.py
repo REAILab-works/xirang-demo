@@ -104,7 +104,7 @@ GCAM_REGION_COLOR_PATH = PROJECT_ROOT / "data" / "gcam" / "region_colors.csv"
 GCAM_ISO3_PATH = PROJECT_ROOT / "data" / "gcam" / "region_iso3.csv"
 GEOTHERMAL_POTENTIAL_PATH = PROJECT_ROOT / "data" / "geothermal" / "global_geothermal_potential.csv"
 DATA_SCHEMA_VERSION = "2026-02-22-offshore-v1"
-BUILD_TAG = "ui-fern-v2"
+BUILD_TAG = "ui-fern-v3"
 
 I18N = {
     "en": {
@@ -826,34 +826,9 @@ def render_monitoring_tab(
 
     show_screen_blocks = view_mode == "screen"
     show_diagnose_blocks = view_mode == "diagnose"
-    if show_diagnose_blocks:
-        time_start = filtered["date"].min().strftime("%Y-%m-%d")
-        time_end = filtered["date"].max().strftime("%Y-%m-%d")
-        source_text = filtered["source"].iloc[0] if "source" in filtered.columns else "Unknown"
-        meta_df = pd.DataFrame(
-            [
-                {
-                    "Data Source": source_text,
-                    "Time Range": f"{time_start} to {time_end}",
-                    "Signal Unit": "proxy / modeled",
-                    "Scenario": "Operational Monitoring",
-                }
-            ]
-        )
-        st.caption("Figure Metadata")
-        st.dataframe(meta_df, use_container_width=True, hide_index=True)
-        q_counts = filtered["quality_tag"].value_counts().reset_index()
-        q_counts.columns = ["Data Status", "Count"]
-        st.caption("Data Status (Observed / Modeled / Mapped / Imputed)")
-        st.dataframe(q_counts, use_container_width=True, hide_index=True)
-        with st.expander("Failures & Data Quality", expanded=False):
-            qa_rows = [
-                {"Check": "Missing dates", "Count": int(filtered["date"].isna().sum()), "Status": "FAIL" if filtered["date"].isna().sum() else "PASS"},
-                {"Check": "Missing actual signal", "Count": int(filtered["actual"].isna().sum()), "Status": "FAIL" if filtered["actual"].isna().sum() else "PASS"},
-                {"Check": "Duplicate rows (date,well)", "Count": int(filtered.duplicated(subset=["date", "well"]).sum()), "Status": "FAIL" if filtered.duplicated(subset=["date", "well"]).sum() else "PASS"},
-            ]
-            qa_df = pd.DataFrame(qa_rows)
-            st.dataframe(qa_df, use_container_width=True, hide_index=True)
+    time_start = filtered["date"].min().strftime("%Y-%m-%d")
+    time_end = filtered["date"].max().strftime("%Y-%m-%d")
+    source_text = filtered["source"].iloc[0] if "source" in filtered.columns else "Unknown"
 
     c1, c2, c3, c4, c5 = st.columns(5)
     latest_all = latest_status_table(filtered, is_crm=is_crm)
@@ -992,9 +967,9 @@ def render_monitoring_tab(
             use_container_width=True,
             on_select="rerun",
         )
-        st.dataframe(latest_all.reset_index(drop=True), use_container_width=True)
+        with st.expander("Supporting Tables", expanded=False):
+            st.dataframe(latest_all.reset_index(drop=True), use_container_width=True)
 
-    st.subheader("Single-Well Detail")
     selected_from_map = None
     if isinstance(selection, dict):
         pick = selection.get("selection", {}).get("well_pick", [])
@@ -1041,6 +1016,31 @@ def render_monitoring_tab(
         "Execute the top action in the plan, then re-check risk score after the next update window.",
     )
 
+    with st.expander("Metadata & QA", expanded=False):
+        meta_df = pd.DataFrame(
+            [
+                {
+                    "Data Source": source_text,
+                    "Time Range": f"{time_start} to {time_end}",
+                    "Signal Unit": "proxy / modeled",
+                    "Scenario": "Operational Monitoring",
+                }
+            ]
+        )
+        st.caption("Metadata")
+        st.dataframe(meta_df, use_container_width=True, hide_index=True)
+        q_counts = filtered["quality_tag"].value_counts().reset_index()
+        q_counts.columns = ["Data Status", "Count"]
+        st.caption("Status")
+        st.dataframe(q_counts, use_container_width=True, hide_index=True)
+        qa_rows = [
+            {"Check": "Missing dates", "Count": int(filtered["date"].isna().sum()), "Status": "FAIL" if filtered["date"].isna().sum() else "PASS"},
+            {"Check": "Missing signal", "Count": int(filtered["actual"].isna().sum()), "Status": "FAIL" if filtered["actual"].isna().sum() else "PASS"},
+            {"Check": "Duplicate (date,well)", "Count": int(filtered.duplicated(subset=["date", "well"]).sum()), "Status": "FAIL" if filtered.duplicated(subset=["date", "well"]).sum() else "PASS"},
+        ]
+        st.caption("Quality Checks")
+        st.dataframe(pd.DataFrame(qa_rows), use_container_width=True, hide_index=True)
+
     st.markdown("**Agent Diagnosis**")
     for cause in intel["causes"]:
         st.write(f"- {cause}")
@@ -1053,8 +1053,8 @@ def render_monitoring_tab(
 
 
 def render_gcam_tab() -> None:
-    st.subheader("GCAM Global Explorer")
-    st.caption("Interactive global scenario analytics for GCAM-style outputs")
+    st.subheader("Global Scenario Atlas")
+    st.caption("Scenario comparison and scaling view.")
 
     use_uploaded = st.checkbox("Upload custom GCAM CSV", value=False)
     use_region_palette = st.checkbox("Use GCAM Region Colors", value=False)
@@ -1076,13 +1076,6 @@ def render_gcam_tab() -> None:
         gcam_df = load_gcam_data(str(GCAM_SAMPLE_PATH))
 
     qa_summary, qa_issues = gcam_quality_report(gcam_df)
-    with st.expander("Failures & Data Quality", expanded=False):
-        st.dataframe(qa_summary, use_container_width=True, hide_index=True)
-        if not qa_issues.empty:
-            st.caption("Issue samples")
-            st.dataframe(qa_issues.head(50), use_container_width=True, hide_index=True)
-        else:
-            st.success("No structural data-quality issues detected in current GCAM table.")
 
     region_color_df = None
     if upload_palette:
@@ -1170,10 +1163,18 @@ def render_gcam_tab() -> None:
             }
         ]
     )
-    st.caption("Figure Metadata")
-    st.dataframe(g_meta, use_container_width=True, hide_index=True)
+    with st.expander("Data & QA", expanded=False):
+        st.caption("Metadata")
+        st.dataframe(g_meta, use_container_width=True, hide_index=True)
+        st.caption("Quality Checks")
+        st.dataframe(qa_summary, use_container_width=True, hide_index=True)
+        if not qa_issues.empty:
+            st.caption("Issue Samples")
+            st.dataframe(qa_issues.head(50), use_container_width=True, hide_index=True)
+        else:
+            st.success("No structural data-quality issues detected in current GCAM table.")
 
-    st.markdown("**Trend by Year**")
+    st.markdown("**Trend**")
     trend = (
         alt.Chart(g_filtered)
         .mark_line(point=True)
@@ -1187,7 +1188,7 @@ def render_gcam_tab() -> None:
     )
     st.altair_chart(trend, use_container_width=True)
 
-    st.markdown("**Region-Year Heatmap (first selected scenario)**")
+    st.markdown("**Heatmap**")
     heat_scenario = sel_scenarios[0]
     heat_df = g_filtered[g_filtered["scenario"] == heat_scenario]
     heat = (
@@ -1203,7 +1204,7 @@ def render_gcam_tab() -> None:
     )
     st.altair_chart(heat, use_container_width=True)
 
-    st.markdown("**Regional Ranking**")
+    st.markdown("**Ranking**")
     rank_df = g_filtered[g_filtered["year"] == sel_year].groupby("region", as_index=False)["value"].sum().sort_values("value", ascending=False)
     if use_region_palette and region_color_df is not None:
         rank_df = rank_df.merge(region_color_df, on="region", how="left")
@@ -1222,7 +1223,7 @@ def render_gcam_tab() -> None:
     )
     st.altair_chart(bar, use_container_width=True)
 
-    st.markdown("**Country Choropleth (GCAM Values)**")
+    st.markdown("**Country Map**")
     choropleth_df = rank_df.copy()
     choropleth_df["data_status"] = "Modeled"
     if "iso3" in g_filtered.columns:
@@ -1236,7 +1237,7 @@ def render_gcam_tab() -> None:
         choropleth_df["iso3"] = np.nan
         choropleth_df["data_status"] = "Modeled"
 
-    st.markdown("**Mapping Agent**")
+    st.markdown("**Mapping Assistant**")
     catalog = iso3_catalog()
     missing_regions = choropleth_df[choropleth_df["iso3"].isna()]["region"].drop_duplicates().tolist()
     sugg_rows = []
@@ -1278,8 +1279,8 @@ def render_gcam_tab() -> None:
 
     status_df = choropleth_df["data_status"].value_counts().reset_index()
     status_df.columns = ["Data Status", "Count"]
-    st.caption("Data Status (Observed / Modeled / Mapped / Imputed)")
-    st.dataframe(status_df, use_container_width=True, hide_index=True)
+    with st.expander("Mapping Status", expanded=False):
+        st.dataframe(status_df, use_container_width=True, hide_index=True)
 
     valid_map = choropleth_df.dropna(subset=["iso3"]).copy()
     if not valid_map.empty:
@@ -1303,7 +1304,7 @@ def render_gcam_tab() -> None:
         st.warning(f"Unmapped regions (not shown on country fill map): {', '.join(unmapped['region'].tolist()[:12])}")
 
     if GCAM_CENTROID_PATH.exists():
-        st.markdown("**Global Region Map (Centroid Bubble)**")
+        st.markdown("**Centroid Bubble Map**")
         centroid = load_region_centroids(str(GCAM_CENTROID_PATH))
         map_year_df = rank_df.merge(centroid, on="region", how="left").dropna(subset=["lat", "lon"])
         if not map_year_df.empty:
@@ -1344,7 +1345,7 @@ def render_gcam_tab() -> None:
                 legend_df = map_year_df[["region", "color_hex"]].drop_duplicates().head(20)
                 st.dataframe(legend_df, use_container_width=True, hide_index=True)
             else:
-                st.markdown("**Numeric Color Scale**")
+                st.markdown("**Numeric Scale**")
                 legend_vals = np.linspace(vmin, vmax, 120)
                 legend_df = pd.DataFrame({"value": legend_vals, "strip": ["scale"] * len(legend_vals)})
                 legend_chart = (
@@ -1365,7 +1366,7 @@ def render_gcam_tab() -> None:
         else:
             st.info("No centroid match found for currently selected regions.")
 
-    st.markdown("**Global Geothermal Potential**")
+    st.markdown("**Geothermal Potential**")
     use_uploaded_geo_potential = st.checkbox("Upload custom geothermal potential CSV", value=False)
     potential_df = None
     if use_uploaded_geo_potential:
@@ -1868,7 +1869,7 @@ def main() -> None:
         selection_warning = tr("no_data_range") if filtered.empty else ""
 
     with tab_screen:
-        st.caption("Identify priority wells and offshore clusters for fast screening.")
+        st.caption("Prioritize wells and offshore clusters.")
         if selection_warning:
             st.warning(selection_warning)
         else:
@@ -1882,7 +1883,7 @@ def main() -> None:
             )
 
     with tab_diagnose:
-        st.caption("Inspect single-well behavior, risk drivers, and recommended execution plans.")
+        st.caption("Inspect well behavior and risk drivers.")
         if selection_warning:
             st.warning(selection_warning)
         else:
@@ -1896,7 +1897,7 @@ def main() -> None:
             )
 
     with tab_scale:
-        st.caption("Scale from local operations to global scenario decisions with GCAM and geothermal potential.")
+        st.caption("Scale local insights to global scenarios.")
         render_gcam_tab()
 
 
