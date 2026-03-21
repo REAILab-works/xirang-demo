@@ -105,7 +105,7 @@ GCAM_REGION_COLOR_PATH = PROJECT_ROOT / "data" / "gcam" / "region_colors.csv"
 GCAM_ISO3_PATH = PROJECT_ROOT / "data" / "gcam" / "region_iso3.csv"
 GEOTHERMAL_POTENTIAL_PATH = PROJECT_ROOT / "data" / "geothermal" / "global_geothermal_potential.csv"
 DATA_SCHEMA_VERSION = "2026-02-22-offshore-v1"
-BUILD_TAG = "ui-stitch-v1"
+BUILD_TAG = "ui-stitch-v2"
 
 I18N = {
     "en": {
@@ -189,6 +189,11 @@ def render_platform_overview(df: pd.DataFrame, is_crm: bool) -> None:
     clusters = ", ".join(sorted(latest["cluster"].dropna().unique().tolist()))
     source_label = "CRM production proxy" if is_crm else "Synthetic UK field atlas"
     overview_html = """
+    <div class="xirang-section-head">
+      <div class="xirang-section-kicker">Core focus areas</div>
+      <div class="xirang-section-title">Scientific Advancement</div>
+      <div class="xirang-section-subtitle">A quiet overview of the operating field, its reuse corridors, and the current live slice.</div>
+    </div>
     <div class="xirang-overview">
       <div class="xirang-overview-card">
         <div class="xirang-kicker">Platform</div>
@@ -217,6 +222,11 @@ def render_platform_overview(df: pd.DataFrame, is_crm: bool) -> None:
 
 def render_mode_strip() -> None:
     html = """
+    <div class="xirang-section-head">
+      <div class="xirang-section-kicker">Research workflow</div>
+      <div class="xirang-section-title">Screen, Diagnose, Scale</div>
+      <div class="xirang-section-subtitle">The platform is organized as a light decision flow rather than a dense dashboard.</div>
+    </div>
     <div class="xirang-mode-strip">
       <div class="xirang-mode-card">
         <div class="xirang-mode-kicker">01</div>
@@ -1535,22 +1545,22 @@ def main() -> None:
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap');
     :root {
-        --x-bg: #f5f8fc;
-        --x-panel: rgba(255, 255, 255, 0.74);
-        --x-panel-strong: rgba(255, 255, 255, 0.92);
-        --x-ink: #152033;
-        --x-muted: #617083;
-        --x-line: rgba(21, 32, 51, 0.10);
-        --x-fern: #1f3551;
-        --x-moss: #3a7bd5;
-        --x-earth: #6cc7d9;
-        --x-soft: #edf3fb;
+        --x-bg: #f5f8fd;
+        --x-panel: rgba(255, 255, 255, 0.82);
+        --x-panel-strong: rgba(255, 255, 255, 0.94);
+        --x-ink: #13253f;
+        --x-muted: #5f738b;
+        --x-line: rgba(19, 37, 63, 0.10);
+        --x-fern: #163962;
+        --x-moss: #2f6db4;
+        --x-earth: #65bcd8;
+        --x-soft: #eef4fb;
     }
     .stApp {
         background:
-            radial-gradient(circle at top left, rgba(58, 123, 213, 0.08), transparent 24%),
-            radial-gradient(circle at top right, rgba(108, 199, 217, 0.10), transparent 24%),
-            linear-gradient(180deg, #fafcff 0%, #eef4fb 100%);
+            radial-gradient(circle at top left, rgba(47, 109, 180, 0.08), transparent 24%),
+            radial-gradient(circle at top right, rgba(101, 188, 216, 0.11), transparent 24%),
+            linear-gradient(180deg, #fbfdff 0%, #eef4fb 100%);
         color: var(--x-ink);
         font-family: 'Source Sans 3', sans-serif;
     }
@@ -1558,50 +1568,111 @@ def main() -> None:
         font-family: 'Manrope', sans-serif;
     }
     [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, rgba(248, 251, 255, 0.96) 0%, rgba(241, 246, 252, 0.98) 100%);
-        border-right: 1px solid rgba(21, 32, 51, 0.08);
+        background: linear-gradient(180deg, rgba(249, 252, 255, 0.98) 0%, rgba(241, 246, 252, 0.99) 100%);
+        border-right: 1px solid rgba(19, 37, 63, 0.08);
     }
-    .xirang-hero {
+    .xirang-shell {
         position: relative;
         overflow: hidden;
-        padding: 1.2rem 1.2rem 1.05rem 1.2rem;
-        margin: 0.12rem 0 0.7rem 0;
-        border: 1px solid var(--x-line);
-        border-radius: 18px;
+        padding: 0;
+        margin: 0.12rem 0 0.9rem 0;
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 24px;
         background:
-            radial-gradient(circle at right top, rgba(58,123,213,0.16), transparent 26%),
-            linear-gradient(180deg, rgba(255,255,255,0.96), rgba(243,247,252,0.98));
-        box-shadow: 0 10px 28px rgba(21, 32, 51, 0.05);
+            radial-gradient(circle at 18% 18%, rgba(128, 177, 255, 0.22), transparent 28%),
+            radial-gradient(circle at 86% 16%, rgba(115, 202, 227, 0.20), transparent 24%),
+            linear-gradient(135deg, #12315b 0%, #1b4680 48%, #173861 100%);
+        box-shadow: 0 18px 44px rgba(14, 29, 55, 0.16);
         animation: xirang-fade-up 0.5s ease-out;
     }
-    .xirang-hero::before {
+    .xirang-shell::before {
         content: "";
         position: absolute;
         inset: 0;
         background:
-            linear-gradient(90deg, rgba(58,123,213,0.02) 1px, transparent 1px),
-            linear-gradient(rgba(58,123,213,0.02) 1px, transparent 1px);
-        background-size: 28px 28px;
-        mask-image: linear-gradient(180deg, rgba(0,0,0,0.22), transparent);
+            linear-gradient(90deg, rgba(200,220,255,0.06) 1px, transparent 1px),
+            linear-gradient(rgba(200,220,255,0.06) 1px, transparent 1px);
+        background-size: 30px 30px;
+        mask-image: linear-gradient(180deg, rgba(0,0,0,0.16), transparent);
         pointer-events: none;
     }
-    .xirang-hero::after {
+    .xirang-shell::after {
         content: "";
         position: absolute;
-        width: 10rem;
+        width: 12rem;
         height: 2px;
         left: 1.2rem;
-        bottom: 1rem;
-        background: linear-gradient(90deg, rgba(58,123,213,0.8), rgba(108,199,217,0.2));
+        bottom: 0.95rem;
+        background: linear-gradient(90deg, rgba(192, 217, 255, 0.8), rgba(135, 218, 239, 0.18));
         pointer-events: none;
+    }
+    .xirang-topbar {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.78rem 1.1rem;
+        border-bottom: 1px solid rgba(255,255,255,0.12);
+    }
+    .xirang-brand {
+        display: flex;
+        align-items: baseline;
+        gap: 0.55rem;
+        color: #f8fbff;
+        font-family: 'Manrope', sans-serif;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        font-size: 0.95rem;
+    }
+    .xirang-brand-sub {
+        font-size: 0.68rem;
+        color: rgba(227,236,248,0.72);
+        letter-spacing: 0.18em;
+    }
+    .xirang-nav {
+        display: flex;
+        align-items: center;
+        gap: 1.2rem;
+        color: rgba(232,240,250,0.84);
+        font-size: 0.92rem;
+    }
+    .xirang-nav-link {
+        position: relative;
+        padding-bottom: 0.12rem;
+        cursor: default;
+    }
+    .xirang-nav-link.is-active::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -0.38rem;
+        height: 2px;
+        border-radius: 999px;
+        background: rgba(195, 219, 255, 0.96);
+    }
+    .xirang-portal {
+        border: 1px solid rgba(255,255,255,0.22);
+        border-radius: 10px;
+        background: rgba(255,255,255,0.96);
+        color: #12315b;
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.84rem;
+        font-weight: 800;
+        padding: 0.48rem 0.84rem;
+        box-shadow: 0 10px 20px rgba(13, 24, 43, 0.18);
     }
     .xirang-hero-grid {
         position: relative;
         z-index: 1;
         display: grid;
-        grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.9fr);
-        gap: 1rem;
+        grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.88fr);
+        gap: 1.15rem;
         align-items: stretch;
+        padding: 1.6rem 1.15rem 1.2rem 1.15rem;
     }
     .xirang-hero-main {
         min-width: 0;
@@ -1615,28 +1686,97 @@ def main() -> None:
     .xirang-side-card {
         border-radius: 14px;
         padding: 0.72rem 0.84rem;
-        background: rgba(255,255,255,0.52);
-        border: 1px solid rgba(58, 123, 213, 0.10);
-        backdrop-filter: blur(4px);
+        background: rgba(255,255,255,0.10);
+        border: 1px solid rgba(255,255,255,0.18);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 12px 26px rgba(13, 24, 43, 0.12);
+    }
+    .xirang-hero-art {
+        position: relative;
+        min-height: 11.5rem;
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,0.18);
+        background:
+            radial-gradient(circle at 32% 34%, rgba(255,255,255,0.46), transparent 18%),
+            radial-gradient(circle at 72% 58%, rgba(128, 177, 255, 0.20), transparent 22%),
+            linear-gradient(180deg, rgba(235,242,250,0.92), rgba(196,210,228,0.96));
+        box-shadow: 0 18px 32px rgba(13, 24, 43, 0.18);
+        overflow: hidden;
+        margin-bottom: 0.65rem;
+    }
+    .xirang-hero-art::before {
+        content: "";
+        position: absolute;
+        inset: 1rem 1.15rem 1.8rem 1.15rem;
+        border-radius: 14px;
+        border: 1px solid rgba(68, 91, 122, 0.18);
+        background:
+            linear-gradient(180deg, rgba(255,255,255,0.52), rgba(247,249,252,0.64)),
+            radial-gradient(circle at 50% 70%, rgba(64, 111, 165, 0.18), transparent 18%);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,0.42);
+    }
+    .xirang-hero-art::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 26%;
+        width: 1.1rem;
+        height: 5.1rem;
+        transform: translateX(-50%);
+        border-radius: 999px 999px 12px 12px;
+        background:
+            linear-gradient(180deg, rgba(56,80,108,0.86), rgba(90,118,148,0.72)),
+            linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.10));
+        box-shadow:
+            0 0 0 0.6rem rgba(255,255,255,0.09),
+            0 0 0 1.1rem rgba(38, 58, 86, 0.08);
+    }
+    .xirang-hero-art-label {
+        position: absolute;
+        left: 1rem;
+        bottom: 0.95rem;
+        z-index: 2;
+        padding: 0.42rem 0.58rem;
+        min-width: 8.8rem;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.96);
+        border: 1px solid rgba(19,37,63,0.08);
+        box-shadow: 0 10px 18px rgba(13,24,43,0.12);
+    }
+    .xirang-hero-art-kicker {
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.62rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #7a8ba2;
+        font-weight: 800;
+    }
+    .xirang-hero-art-value {
+        margin-top: 0.08rem;
+        font-family: 'Manrope', sans-serif;
+        font-size: 1rem;
+        color: var(--x-fern);
+        font-weight: 800;
+        line-height: 1.12;
     }
     .xirang-side-kicker {
         font-family: 'Manrope', sans-serif;
         font-size: 0.68rem;
         letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: #69809c;
+        color: rgba(223,236,251,0.78);
         font-weight: 800;
         margin-bottom: 0.25rem;
     }
     .xirang-side-value {
         font-family: 'Manrope', sans-serif;
-        color: var(--x-fern);
+        color: #f8fbff;
         font-size: 1.02rem;
         line-height: 1.3;
         font-weight: 800;
     }
     .xirang-side-note {
-        color: #5d7289;
+        color: rgba(221,232,244,0.78);
         font-size: 0.88rem;
         line-height: 1.35;
         margin-top: 0.18rem;
@@ -1647,9 +1787,9 @@ def main() -> None:
         gap: 0.42rem;
         padding: 0.32rem 0.7rem;
         border-radius: 999px;
-        border: 1px solid rgba(58,123,213,0.14);
-        background: rgba(255,255,255,0.72);
-        color: #42658d;
+        border: 1px solid rgba(199,221,255,0.18);
+        background: rgba(255,255,255,0.12);
+        color: #e7f1ff;
         font-size: 0.78rem;
         font-weight: 700;
         letter-spacing: 0.08em;
@@ -1659,19 +1799,19 @@ def main() -> None:
     .xirang-title {
         position: relative;
         z-index: 1;
-        font-size: 3rem;
+        font-size: 3.45rem;
         font-weight: 800;
         line-height: 1.05;
         margin: 0.32rem 0 0.2rem 0;
-        color: var(--x-fern);
+        color: #f8fbff;
         letter-spacing: -0.06rem;
     }
     .xirang-subtitle {
         position: relative;
         z-index: 1;
-        font-size: 1.02rem;
+        font-size: 1rem;
         font-weight: 600;
-        color: #566f8f;
+        color: rgba(221,232,244,0.82);
         margin-top: 0.15rem;
         margin-bottom: 0;
         line-height: 1.36;
@@ -1685,16 +1825,16 @@ def main() -> None:
         gap: 0.45rem;
         font-size: 0.76rem;
         font-weight: 700;
-        color: var(--x-muted);
+        color: rgba(224,234,245,0.78);
         letter-spacing: 0.12em;
         text-transform: uppercase;
-        border: 1px solid rgba(58, 123, 213, 0.10);
+        border: 1px solid rgba(190, 214, 252, 0.18);
         padding: 0.26rem 0.56rem;
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.72);
+        background: rgba(255, 255, 255, 0.08);
     }
     .xirang-accent {
-        color: var(--x-moss);
+        color: #b8d5ff;
         font-weight: 800;
         letter-spacing: 0.2px;
     }
@@ -1705,22 +1845,51 @@ def main() -> None:
         max-width: 760px;
         font-size: 0.92rem;
         line-height: 1.46;
-        color: #5d7289;
+        color: rgba(220,232,245,0.76);
+    }
+    .xirang-section-head {
+        margin: 0.15rem 0 0.35rem 0;
+        padding-top: 0.12rem;
+    }
+    .xirang-section-kicker {
+        font-family: 'Manrope', sans-serif;
+        font-size: 0.68rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #6c7f98;
+        font-weight: 800;
+        margin-bottom: 0.18rem;
+    }
+    .xirang-section-title {
+        font-family: 'Manrope', sans-serif;
+        font-size: 1.72rem;
+        line-height: 1.08;
+        letter-spacing: -0.04em;
+        color: var(--x-fern);
+        font-weight: 800;
+        margin-bottom: 0.18rem;
+    }
+    .xirang-section-subtitle {
+        color: var(--x-muted);
+        font-size: 0.97rem;
+        line-height: 1.38;
+        max-width: 760px;
+        margin-bottom: 0.35rem;
     }
     .xirang-overview {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 0.7rem;
-        margin: 0.12rem 0 0.85rem 0;
+        gap: 0.8rem;
+        margin: 0.08rem 0 1rem 0;
         animation: xirang-fade-up 0.62s ease-out;
     }
     .xirang-overview-card {
-        padding: 0.9rem 0.92rem 0.88rem 0.92rem;
+        padding: 0.92rem 0.96rem 0.9rem 0.96rem;
         border-radius: 14px;
-        border: 1px solid rgba(21, 32, 51, 0.08);
-        border-top: 4px solid rgba(58,123,213,0.55);
-        background: rgba(255,255,255,0.78);
-        box-shadow: 0 6px 16px rgba(21, 32, 51, 0.03);
+        border: 1px solid rgba(19, 37, 63, 0.08);
+        border-top: 4px solid rgba(47,109,180,0.62);
+        background: rgba(255,255,255,0.88);
+        box-shadow: 0 8px 20px rgba(19, 37, 63, 0.04);
     }
     .xirang-kicker {
         font-family: 'Manrope', sans-serif;
@@ -1728,7 +1897,7 @@ def main() -> None:
         font-weight: 800;
         letter-spacing: 0.14em;
         text-transform: uppercase;
-        color: #5c7698;
+        color: #6180a5;
         margin-bottom: 0.35rem;
     }
     .xirang-overview-value {
@@ -1740,22 +1909,22 @@ def main() -> None:
     }
     .xirang-overview-note {
         margin-top: 0.26rem;
-        color: #607081;
+        color: #5f738b;
         font-size: 0.87rem;
         line-height: 1.38;
     }
     .xirang-mode-strip {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.72rem;
-        margin: 0.2rem 0 0.95rem 0;
+        gap: 0.8rem;
+        margin: 0.08rem 0 1rem 0;
     }
     .xirang-mode-card {
         padding: 0.9rem 0.95rem;
         border-radius: 14px;
-        border: 1px solid rgba(21, 32, 51, 0.08);
-        background: linear-gradient(180deg, rgba(255,255,255,0.82), rgba(243,247,252,0.94));
-        box-shadow: 0 6px 16px rgba(21, 32, 51, 0.03);
+        border: 1px solid rgba(19, 37, 63, 0.08);
+        background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(244,248,253,0.98));
+        box-shadow: 0 8px 20px rgba(19, 37, 63, 0.04);
     }
     .xirang-mode-kicker {
         font-family: 'Manrope', sans-serif;
@@ -1763,7 +1932,7 @@ def main() -> None:
         font-weight: 800;
         letter-spacing: 0.12em;
         text-transform: uppercase;
-        color: var(--x-moss);
+        color: #2f6db4;
         margin-bottom: 0.28rem;
     }
     .xirang-mode-title {
@@ -1774,33 +1943,33 @@ def main() -> None:
         margin-bottom: 0.18rem;
     }
     .xirang-mode-note {
-        color: #607081;
+        color: #5f738b;
         font-size: 0.9rem;
         line-height: 1.38;
     }
     .xirang-narrative {
         margin: 0.05rem 0 0.75rem 0;
         padding: 0.72rem 0.88rem;
-        border-left: 2px solid rgba(58,123,213,0.65);
-        background: rgba(255,255,255,0.56);
+        border-left: 2px solid rgba(47,109,180,0.72);
+        background: rgba(255,255,255,0.76);
         border-radius: 0 10px 10px 0;
-        color: #5d7289;
+        color: #5f738b;
         font-size: 0.96rem;
         line-height: 1.45;
     }
     .xirang-brief {
         margin: 0.28rem 0 0.75rem 0;
         padding: 0.68rem 0.86rem;
-        border: 1px solid rgba(35, 49, 41, 0.12);
+        border: 1px solid rgba(19, 37, 63, 0.10);
         border-radius: 10px;
-        background: rgba(249, 247, 241, 0.66);
+        background: rgba(255,255,255,0.84);
     }
     .xirang-brief-title {
         font-family: 'Manrope', sans-serif;
         font-size: 0.9rem;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-        color: #5f6f62;
+        color: #6a7c91;
         font-weight: 800;
         margin-bottom: 0.32rem;
     }
@@ -1825,7 +1994,7 @@ def main() -> None:
         align-items: center;
         margin: 0.55rem 0 1rem 0;
         padding: 0.8rem 0.95rem;
-        background: rgba(255,255,255,0.70);
+        background: rgba(255,255,255,0.88);
         border: 1px solid var(--x-line);
         border-radius: 12px;
     }
@@ -1851,7 +2020,7 @@ def main() -> None:
         padding: 0.24rem 0.55rem;
         border-radius: 999px;
         background: rgba(255,255,255,0.96);
-        border: 1px solid rgba(21,32,51,0.08);
+        border: 1px solid rgba(19,37,63,0.08);
         color: #506277;
         font-size: 0.88rem;
     }
@@ -1872,15 +2041,15 @@ def main() -> None:
         border-radius: 999px;
         padding: 0.03rem 0.72rem;
         background: rgba(255,255,255,0.66);
-        border: 1px solid rgba(21, 32, 51, 0.08);
+        border: 1px solid rgba(19, 37, 63, 0.08);
     }
     .stTabs [aria-selected="true"] {
-        background: rgba(58, 123, 213, 0.92);
+        background: rgba(47, 109, 180, 0.94);
         color: #f7fbff !important;
         box-shadow: none;
     }
     [data-testid="stMetric"] {
-        background: rgba(255,255,255,0.72);
+        background: rgba(255,255,255,0.84);
         border: 1px solid var(--x-line);
         border-radius: 10px;
         padding: 0.54rem 0.72rem;
@@ -1905,7 +2074,7 @@ def main() -> None:
     [data-testid="stDataFrame"], .stPlotlyChart, [data-testid="stDeckGlJsonChart"], [data-testid="stVegaLiteChart"] {
         border: 1px solid var(--x-line);
         box-shadow: none;
-        background: rgba(255,255,255,0.76);
+        background: rgba(255,255,255,0.88);
     }
     h3 {
         font-size: 1.58rem !important;
@@ -1949,7 +2118,20 @@ def main() -> None:
         }
     }
     </style>
-    <div class="xirang-hero">
+    <div class="xirang-shell">
+      <div class="xirang-topbar">
+        <div class="xirang-brand">
+          <span>XIRANG</span>
+          <span class="xirang-brand-sub">Subsurface Intelligence</span>
+        </div>
+        <div class="xirang-nav">
+          <span class="xirang-nav-link is-active">Home</span>
+          <span class="xirang-nav-link">Research</span>
+          <span class="xirang-nav-link">Publications</span>
+          <span class="xirang-nav-link">Partners</span>
+        </div>
+        <div class="xirang-portal">Access Portal</div>
+      </div>
       <div class="xirang-hero-grid">
         <div class="xirang-hero-main">
           <div class="xirang-prompt-chip">Prompt-led / lightweight / exportable</div>
@@ -1959,14 +2141,20 @@ def main() -> None:
           <div class="xirang-root-note">A field system for subsurface transition: growing through retired infrastructure, hidden thermal assets, and buried network capacity rather than surface-level expansion alone.</div>
         </div>
         <div class="xirang-hero-side">
-          <div class="xirang-side-card">
-            <div class="xirang-side-kicker">Focus</div>
-            <div class="xirang-side-value">From UK well screening to global scenario scale-up</div>
-            <div class="xirang-side-note">One system for local diagnosis, infrastructure reuse, and policy-facing interpretation.</div>
+          <div class="xirang-hero-art">
+            <div class="xirang-hero-art-label">
+              <div class="xirang-hero-art-kicker">Live field window</div>
+              <div class="xirang-hero-art-value">200 wells · 65 offshore</div>
+            </div>
           </div>
           <div class="xirang-side-card">
-            <div class="xirang-side-kicker">Design principle</div>
-            <div class="xirang-side-value">Spread, not bloom</div>
+            <div class="xirang-side-kicker">Core temperature</div>
+            <div class="xirang-side-value">Geothermal assets, well corridors, and transition layers</div>
+            <div class="xirang-side-note">A live field slice aligned to reuse, diagnosis, and scenario scale-up.</div>
+          </div>
+          <div class="xirang-side-card">
+            <div class="xirang-side-kicker">Operating mode</div>
+            <div class="xirang-side-value">Screen, diagnose, then scale</div>
             <div class="xirang-side-note">Quiet, persistent expansion through wells, corridors, and long-lived assets.</div>
           </div>
         </div>
